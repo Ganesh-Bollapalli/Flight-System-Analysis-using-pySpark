@@ -1,0 +1,73 @@
+flights
+1. include a new column called duration_hrs (flights dataset)
+2. Define first filter to only keep flights from SEA to PDX
+3. Filter flights which have 1000 distance (covered in km)
+4. Calculate average speed by dividing the distance by the air_time (converted to hours).Use the .alias() method name
+5. Group by tailnum column, Use the .count() method with no arguments to count the number of flights each plane made
+6. Find the length of the shortest (in terms of distance) flight that left PDX 
+7. Find the length of the longest (in terms of time) flight that left SEA
+8. get the average air time of Delta Airlines flights  that left SEA
+9. get the total number of hours all planes in this dataset spent in the air by creating a column called duration_hrs
+10. Find the .avg() of the air_time column to find average duration of flights from PDX and SEA
+11. Average departure delay by month and destination
+airports
+12. Join the airplanes dataframe with flights dataframe
+planes
+13. Join the flights and plane table use key as tailnum column
+
+
+-----------------------------------------------------------------------------------------------------------------------------------
+
+1) import pyspark
+from pyspark.sql import SparkSession
+spark=SparkSession.builder.appName("ganesh").getOrCreate()
+flights_df=spark.read.csv("/projects/challenge/flights.csv", header=True, sep=",")
+flight_dur_df=flights_df.withColumn("duration_hrs", flights_df.air_time/60)
+
+2) flight_SEA_PDX_df=flights_df.filter(flights_df.origin == "SEA").filter(flights_df.dest == "PDX")
+flight_SEA_PDX_df.count()
+
+3) flight_long_df=flights_df.filter(flights_df.distance > 1000)
+flight_long_df.show()
+
+4) flight_avgspeed_df = flight_dur_df.select('*', (flight_dur_df.distance/flight_dur_df.duration_hrs).alias("Avg Speed"))
+flight_avgspeed_df.show()
+
+5) flights_count_df=flights_df.groupBy("tailnum").count()
+flights_count_df.orderBy("count", ascending=False).show()
+
+6) flights_df=flights_df.withColumn("distance", flights_df.distance.cast("int"))
+flight_short_dst_df=flights_df.filter(flights_df.origin=="PDX").groupBy().min("distance").alias("Shorteste Distance")
+flight_short_dst_df.show()
+
+7) flights_df=flights_df.withColumn("air_time", flights_df.air_time.cast("int"))
+flight_long_tym_df=flights_df.filter(flights_df.origin=="SEA").groupBy().max("air_time").alias("longest time")
+flight_long_tym_df.show()
+
+8) from pyspark.sql.functions import * 
+flights_dl_df=flights_df.filter(flights_df.carrier=="DL").filter(flights_df.origin=="SEA").groupBy().agg(avg("air_time").alias("AVG_TIME"))
+flights_dl_df.show()
+
+9) flight_total_tym_df=flight_dur_df.groupBy().sum("duration_hrs").alias("Total Time")
+flight_total_tym_df.show()
+
+10) flights_avg_df=flight_dur_df.filter(flight_dur_df.origin=="PDX").filter(flight_dur_df.dest=="SEA").groupBy().avg("duration_hrs").alias("AVG AIR TIME")
+flights_avg_df.show()
+
+11) flights_df=flights_df.withColumn("dep_delay", flights_df.dep_delay.cast("int"))
+flight_avg_dl_df=flights_df.groupBy("year", "month").avg("dep_delay").alias("DEP_DELAY")
+flight_avg_dl_df.show()
+
+12) airports_df=spark.read.csv("/projects/challenge/airports.csv", header=True, sep=",")
+airports_df.show()
+airports_new_df=airports_df.withColumnRenamed("faa", "dest")
+flights_with_airports= flights_df.join(airports_new_df, on='dest', how='leftouter')
+flights_with_airports.show()
+
+13) planes_df=spark.read.csv("/projects/challenge/planes.csv", header=True, sep=",")
+planes_df.show()
+# Rename year column on panes to avoid duplicate column name
+planes_new_df = planes_df.withColumnRenamed('year', 'plane_year')
+#join the flights and plane table use key as tailnum column
+model_data = flights_df.join(planes_df, on='tailnum', how='leftouter')
+model_data.show()
