@@ -1,5 +1,5 @@
 # Flight-System-Analysis-using-pySpark
-Analysing Flight system data and gaining various insights using Databricks
+Analysing Flight system data and Gaining various insights using Databricks
 
 ## Datasets
 * fliights_small.csv
